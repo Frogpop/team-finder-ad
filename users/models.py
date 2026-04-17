@@ -1,46 +1,14 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.core.validators import RegexValidator
-from django.core.exceptions import ValidationError
-from django.core.files.base import ContentFile
-from PIL import Image, ImageDraw, ImageFont
-import io
-import random
-import re
+
+from users.utils import normalize_phone, generate_avatar
 
 
 def validate_github_url(value: str):
     if value and "github.com" not in value.lower():
         raise ValidationError("Ссылка должна вести на GitHub (github.com)")
-
-
-def normalize_phone(phone: str) -> str:
-    cleaned = re.sub(r"[^\d+]", "", phone)
-    if cleaned.startswith("8") and len(cleaned) == 11:
-        cleaned = "+7" + cleaned[1:]
-    return cleaned
-
-
-def generate_avatar(name: str) -> ContentFile:
-    bg_colors = ["#A8D8EA", "#F7CAC9", "#92A8D1", "#88B04B", "#F7786B", "#955251"]
-    text_color = "#2C3E50"
-
-    img = Image.new("RGB", (200, 200), color=random.choice(bg_colors))
-    draw = ImageDraw.Draw(img)
-    try:
-        font = ImageFont.truetype("arial.ttf", 100)
-    except (IOError, OSError):
-        font = ImageFont.load_default()
-
-    initial = (name[0] if name else "?").upper()
-    bbox = draw.textbbox((0, 0), initial, font=font)
-    w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    draw.text(((200 - w) / 2, (200 - h) / 2 - 10), initial, fill=text_color, font=font)
-
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    buffer.seek(0)
-    return ContentFile(buffer.getvalue(), name=f"avatar_{name}.png")
 
 
 class CustomUserManager(BaseUserManager):

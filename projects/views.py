@@ -8,12 +8,15 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from .forms import ProjectForm
 from .models import Project
 
+# Константы пагинации (можно импортировать из users.views, если там уже есть)
+PAGINATION_SIZE = 12
+
 
 class ProjectListView(ListView):
     model = Project
     template_name = "projects/project_list.html"
     context_object_name = "projects"
-    paginate_by = 12
+    paginate_by = PAGINATION_SIZE
     ordering = ["-created_at"]
 
 
@@ -26,8 +29,14 @@ class ProjectDetailView(DetailView):
         ctx = super().get_context_data(**kwargs)
         user = self.request.user
         ctx["is_owner"] = user.is_authenticated and user == self.object.owner
-        ctx["is_participant"] = user.is_authenticated and self.object.participants.filter(id=user.id).exists()
-        ctx["is_favorited"] = user.is_authenticated and self.object in user.favorites.all()
+        ctx["is_participant"] = (
+            user.is_authenticated
+            and self.object.participants.filter(id=user.id).exists()
+        )
+        ctx["is_favorited"] = (
+            user.is_authenticated
+            and self.object.favorites.filter(pk=user.pk).exists()
+        )
         return ctx
 
 
@@ -72,7 +81,7 @@ class FavoriteListView(LoginRequiredMixin, ListView):
     model = Project
     template_name = "projects/favorite_projects.html"
     context_object_name = "projects"
-    paginate_by = 12
+    paginate_by = PAGINATION_SIZE
     ordering = ["-created_at"]
 
     def get_queryset(self):
@@ -82,12 +91,15 @@ class FavoriteListView(LoginRequiredMixin, ListView):
 @login_required
 def toggle_favorite(request, pk):
     project = get_object_or_404(Project, pk=pk)
-    if project in request.user.favorites.all():
+    is_favorited = project.favorites.filter(pk=request.user.pk).exists()
+
+    if is_favorited:
         request.user.favorites.remove(project)
         favorited = False
     else:
         request.user.favorites.add(project)
         favorited = True
+
     return JsonResponse({"status": "ok", "favorited": favorited})
 
 
@@ -106,7 +118,9 @@ def toggle_participate(request, pk):
     project = get_object_or_404(Project, pk=pk)
     user = request.user
 
-    if user in project.participants.all():
+    is_participant = project.participants.filter(pk=user.pk).exists()
+
+    if is_participant:
         project.participants.remove(user)
         is_participant = False
     else:

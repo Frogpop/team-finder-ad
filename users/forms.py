@@ -4,7 +4,8 @@ from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 
-from .models import CustomUser, normalize_phone
+from .models import CustomUser
+from .utils import normalize_phone
 
 
 class UserRegistrationForm(forms.ModelForm):
