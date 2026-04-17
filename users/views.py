@@ -7,6 +7,15 @@ from django.views.generic import ListView, DetailView, UpdateView, FormView
 from .forms import UserRegistrationForm, UserLoginForm, ProfileForm, CustomPasswordChangeForm
 from .models import CustomUser
 
+# Константы пагинации
+PAGINATION_SIZE = 12
+
+# Константы фильтров пользователей
+FILTER_OWNERS_OF_FAVORITE = "owners-of-favorite-projects"
+FILTER_OWNERS_OF_PARTICIPATING = "owners-of-participating-projects"
+FILTER_INTERESTED_IN_MY = "interested-in-my-projects"
+FILTER_PARTICIPANTS_OF_MY = "participants-of-my-projects"
+
 
 class RegisterView(FormView):
     template_name = "users/register.html"
@@ -41,7 +50,7 @@ class UserListView(ListView):
     model = CustomUser
     template_name = "users/participants.html"
     context_object_name = "participants"
-    paginate_by = 12
+    paginate_by = PAGINATION_SIZE
     ordering = ["-id"]
 
     def get_queryset(self):
@@ -54,41 +63,21 @@ class UserListView(ListView):
     def _apply_filter(self, qs, key):
         user = self.request.user
 
-        if key == "owners-of-favorite-projects":
+        if key == FILTER_OWNERS_OF_FAVORITE:
             # Авторы проектов, которые я добавил в избранное
-            favorite_ids = list(user.favorites.values_list('pk', flat=True))
-            if not favorite_ids:
-                return CustomUser.objects.none()
-            return CustomUser.objects.filter(
-                owned_projects__pk__in=favorite_ids
-            ).distinct()
+            return qs.filter(owned_projects__in=user.favorites.all()).distinct()
 
-        elif key == "owners-of-participating-projects":
+        elif key == FILTER_OWNERS_OF_PARTICIPATING:
             # Авторы проектов, в которых я участвую
-            participated_ids = list(user.participated_projects.values_list('pk', flat=True))
-            if not participated_ids:
-                return CustomUser.objects.none()
-            return CustomUser.objects.filter(
-                owned_projects__pk__in=participated_ids
-            ).distinct()
+            return qs.filter(owned_projects__in=user.participated_projects.all()).distinct()
 
-        elif key == "interested-in-my-projects":
+        elif key == FILTER_INTERESTED_IN_MY:
             # Пользователи, которые добавили мои проекты в избранное
-            my_project_ids = list(user.owned_projects.values_list('pk', flat=True))
-            if not my_project_ids:
-                return CustomUser.objects.none()
-            return CustomUser.objects.filter(
-                favorites__pk__in=my_project_ids
-            ).distinct()
+            return qs.filter(favorites__project__owner=user).distinct()
 
-        elif key == "participants-of-my-projects":
+        elif key == FILTER_PARTICIPANTS_OF_MY:
             # Участники моих проектов
-            my_project_ids = list(user.owned_projects.values_list('pk', flat=True))
-            if not my_project_ids:
-                return CustomUser.objects.none()
-            return CustomUser.objects.filter(
-                participated_projects__pk__in=my_project_ids
-            ).distinct()
+            return qs.filter(participated_projects__owner=user).distinct()
 
         return qs
 
