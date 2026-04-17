@@ -70,5 +70,40 @@
     {% else %}
     {% include 'includes/empty-project-card.html' with empty_title="Пока нет участников" empty_message="Попробуйте сбросить фильтр" button_link="/users/list" button_text="Сбросить" %}
     {% endif %}
+
+    {% if is_paginated %}
+    <div class="pagination-wrapper mt-4 d-flex justify-content-center">
+        <nav aria-label="Навигация по страницам">
+            <ul class="pagination">
+                {# Первая страница #}
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if active_filter %}&filter={{ active_filter }}{% endif %}">&laquo; Первая</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if active_filter %}&filter={{ active_filter }}{% endif %}">Назад</a>
+                    </li>
+                {% endif %}
+
+                {# Текущая страница #}
+                <li class="page-item active">
+                    <span class="page-link">
+                        Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+
+                {# Следующая и последняя #}
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if active_filter %}&filter={{ active_filter }}{% endif %}">Вперёд</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if active_filter %}&filter={{ active_filter }}{% endif %}">Последняя &raquo;</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
